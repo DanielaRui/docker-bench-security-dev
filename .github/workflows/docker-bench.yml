@@ -1,0 +1,27 @@
+name: Docker Bench Security Audit
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Clonar el repositorio
+      uses: actions/checkout@v3
+
+    - name: Instalar Docker y jq
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker.io jq
+
+    - name: Construir imagen
+      run: docker build -t docker-bench .
+
+    - name: Ejecutar análisis de seguridad
+      run: |
+        chmod +x docker-bench-security.sh
+        sudo ./docker-bench-security.sh

@@ -1,14 +1,13 @@
 name: SLSA
-
 on:
   push:
   release:
+    permissions:
+      contents: write
     types: [published, released]
 
 permissions:
-  actions: read
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
   build:
@@ -21,23 +20,23 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Set REPOSITORY_NAME
-        run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+      - run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+        shell: bash
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
       - name: Build artifacts
         run: |
-          find *.sh functions/* tests/* Dockerfile Vagrantfile \
-            -exec sha256sum {} \; > ${{ env.REPOSITORY_NAME }}.sha256
+          find *.sh functions/* tests/* Dockerfile Vagrantfile -exec sha256sum {} \; > ${{ env.REPOSITORY_NAME }}.sha256
 
       - name: Generate hashes
+        shell: bash
         id: hash
         run: |
-          echo "hashes=$(base64 -i ${{ env.REPOSITORY_NAME }}.sha256 | tr -d '\n')" >> "$GITHUB_OUTPUT"
+          echo "hashes=$(sha256sum ${{ env.REPOSITORY_NAME }}.sha256 | base64 -w0)" >> "$GITHUB_OUTPUT"
 
-      - name: Upload hashes file
+      - name: Upload ${{ env.REPOSITORY_NAME }}.sha256
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.REPOSITORY_NAME }}.sha256
@@ -47,31 +46,34 @@ jobs:
 
   provenance:
     needs: [build]
-    uses: ./.github/workflows/provenance.yml
-    with:
-      base64-subjects: ${{ needs.build.outputs.hashes }}
-      upload-assets: ${{ startsWith(github.ref, 'refs/tags/') }}
-      generator-name: "docker-bench-security"
-
-  release:
-    needs: [build]
     permissions:
       actions: read
       id-token: write
       contents: write
+    uses: GerardoSanchez4/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@main
+    with:
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      upload-assets: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+  release:
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    needs: [build]  # También podés poner provenance si ya funciona
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: Set REPOSITORY_NAME
-        run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print \$(echo ${{ github.repository }} | awk -F/ '{print $2}') }')" >> $GITHUB_ENV
+      - run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+        shell: bash
 
-      - name: Download hashes artifact
+      - name: Download ${{ env.REPOSITORY_NAME }}.sha256
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.REPOSITORY_NAME }}.sha256
 
-      - name: Upload asset to GitHub release
-        uses: softprops/action-gh-release@v2
+      - name: Upload asset
+        uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564
         with:
           files: |
             ${{ env.REPOSITORY_NAME }}.sha256

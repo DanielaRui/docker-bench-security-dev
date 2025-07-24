@@ -30,12 +30,11 @@ jobs:
         run: |
           find *.sh functions/* tests/* Dockerfile Vagrantfile -exec sha256sum {} \; > ${{ env.REPOSITORY_NAME }}.sha256
 
-  name: Generate hashes
-  shell: bash
-  id: hash
-  run: |
-    echo "hashes=$(base64 -i ${{ env.REPOSITORY_NAME }}.sha256 | tr -d '\n')" >> "$GITHUB_OUTPUT"
-
+      - name: Generate hashes
+        shell: bash
+        id: hash
+        run: |
+          echo "hashes=$(sha256sum ${{ env.REPOSITORY_NAME }}.sha256 | base64 -w0)" >> "$GITHUB_OUTPUT"
 
       - name: Upload ${{ env.REPOSITORY_NAME }}.sha256
         uses: actions/upload-artifact@v4

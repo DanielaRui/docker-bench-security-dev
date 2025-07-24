@@ -1,4 +1,5 @@
 name: SLSA
+
 on:
   push:
   release:
@@ -20,23 +21,23 @@ jobs:
         with:
           egress-policy: audit
 
-      - run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
-        shell: bash
+      - name: Set REPOSITORY_NAME
+        run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
 
       - name: Checkout repository
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+        uses: actions/checkout@v4
 
       - name: Build artifacts
         run: |
-          find *.sh functions/* tests/* Dockerfile Vagrantfile -exec sha256sum {} \; > ${{ env.REPOSITORY_NAME }}.sha256
+          find *.sh functions/* tests/* Dockerfile Vagrantfile \
+            -exec sha256sum {} \; > ${{ env.REPOSITORY_NAME }}.sha256
 
       - name: Generate hashes
-        shell: bash
         id: hash
         run: |
-          echo "hashes=$(sha256sum ${{ env.REPOSITORY_NAME }}.sha256 | base64 -w0)" >> "$GITHUB_OUTPUT"
+          echo "hashes=$(base64 -i ${{ env.REPOSITORY_NAME }}.sha256 | tr -d '\n')" >> "$GITHUB_OUTPUT"
 
-      - name: Upload ${{ env.REPOSITORY_NAME }}.sha256
+      - name: Upload hashes file
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.REPOSITORY_NAME }}.sha256
@@ -46,34 +47,31 @@ jobs:
 
   provenance:
     needs: [build]
-    permissions:
-      actions: read
-      id-token: write
-      contents: write
-    uses: GerardoSanchez4/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@main
+    uses: ./.github/workflows/provenance.yml
     with:
-      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      base64-subjects: ${{ needs.build.outputs.hashes }}
       upload-assets: ${{ startsWith(github.ref, 'refs/tags/') }}
+      generator-name: "docker-bench-security"
 
   release:
+    needs: [build]
     permissions:
       actions: read
       id-token: write
       contents: write
-    needs: [build]  # También podés poner provenance si ya funciona
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
-        shell: bash
+      - name: Set REPOSITORY_NAME
+        run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print Substr(${{ github.repository }},slash,last)}')" >> $GITHUB_ENV
 
-      - name: Download ${{ env.REPOSITORY_NAME }}.sha256
+      - name: Download hashes artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.REPOSITORY_NAME }}.sha256
 
-      - name: Upload asset
-        uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564
+      - name: Upload asset to GitHub release
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             ${{ env.REPOSITORY_NAME }}.sha256

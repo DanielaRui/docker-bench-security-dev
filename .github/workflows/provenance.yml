@@ -1,0 +1,30 @@
+name: provenance
+
+on:
+  workflow_call:
+    inputs:
+      base64-subjects:
+        description: "Output from build job: hashes encoded in base64"
+        required: true
+        type: string
+      upload-assets:
+        description: "Boolean: if true, upload provenance to release"
+        required: true
+        type: boolean
+      generator-name:
+        description: "Name of the generator (project name used internally)"
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  id-token: write
+  contents: write
+
+jobs:
+  provenance:
+    uses: GerardoSanchez4/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@main
+    with:
+      base64-subjects: ${{ inputs.base64-subjects }}
+      upload-assets: ${{ inputs.upload-assets }}
+      generator-name: ${{ inputs.generator-name }}

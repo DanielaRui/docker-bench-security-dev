@@ -24,3 +24,11 @@ jobs:
         run: |
           chmod +x docker-bench-security.sh
           sudo ./docker-bench-security.sh
+          
+      - name: Guardar resultados como artefacto
+        uses: actions/upload-artifact@v3
+        with:
+          name: logs-docker-bench
+          path: |
+            log/docker-bench-security.log
+            log/docker-bench-security.log.json

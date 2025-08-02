@@ -49,3 +49,4 @@ jobs:
         run: |
           docker tag docker-bench ${{ secrets.DOCKER_USERNAME }}/docker-bench-security:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/docker-bench-security:latest
+

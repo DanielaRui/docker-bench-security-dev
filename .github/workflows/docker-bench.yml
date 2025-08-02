@@ -32,4 +32,11 @@ jobs:
           path: |
             log/docker-bench-security.log
             log/docker-bench-security.log.json
+# ///nuevo
+
+      - name: Ejecutar pruebas unitarias con Bats
+        run: |
+          git submodule update --init --recursive
+          ./tests/bats/bats-core/bin/bats tests/test_functions.bats
+
 

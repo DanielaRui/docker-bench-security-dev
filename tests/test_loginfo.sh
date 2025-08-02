@@ -5,3 +5,4 @@ source "$SCRIPT_DIR/../functions/functions_lib.sh"
 source "$SCRIPT_DIR/../functions/output_lib.sh"
 
 info "Mensaje de prueba"
+

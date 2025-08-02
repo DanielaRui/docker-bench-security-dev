@@ -18,3 +18,4 @@ setup() {
   [[ "$output" == *"[INFO]"* ]]
   [[ "$output" == *"Mensaje de prueba"* ]]
 }
+

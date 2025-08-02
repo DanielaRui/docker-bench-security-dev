@@ -32,11 +32,20 @@ jobs:
           path: |
             log/docker-bench-security.log
             log/docker-bench-security.log.json
-# ///nuevo
+
 
       - name: Ejecutar pruebas unitarias con Bats
         run: |
           git submodule update --init --recursive
           ./tests/bats/bats-core/bin/bats tests/test_functions.bats
+      
+      - name: Login a Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-
+      - name: Subir imagen a Docker Hub
+        run: |
+          docker tag docker-bench ${{ secrets.DOCKER_USERNAME }}/docker-bench-security:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/docker-bench-security:latest

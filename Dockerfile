@@ -5,16 +5,17 @@ LABEL \
   org.label-schema.url="https://dockerbench.com" \
   org.label-schema.vcs-url="https://github.com/docker/docker-bench-security.git"
 
-RUN apk add --no-cache iproute2 \
-    docker-cli \
-    dumb-init \
-    jq
+# Instalar bash y dependencias necesarias
+RUN apk add --no-cache bash iproute2 docker-cli dumb-init jq git
 
-COPY . /usr/local/bin/
+# Clonar el repositorio oficial (o podrías copiar tu versión completa local)
+RUN git clone https://github.com/docker/docker-bench-security.git /opt/docker-bench-security
+
+WORKDIR /opt/docker-bench-security
 
 HEALTHCHECK CMD exit 0
 
-WORKDIR /usr/local/bin
-
-ENTRYPOINT [ "/usr/bin/dumb-init", "/bin/sh", "docker-bench-security.sh" ]
+# Ejecutar con bash para evitar errores de sintaxis
+ENTRYPOINT ["/usr/bin/dumb-init", "bash", "docker-bench-security.sh"]
 CMD [""]
+

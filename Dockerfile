@@ -19,3 +19,4 @@ HEALTHCHECK CMD exit 0
 ENTRYPOINT ["/usr/bin/dumb-init", "bash", "docker-bench-security.sh"]
 CMD [""]
 
+
